@@ -1,8 +1,8 @@
 import SiteNav from "@/components/SiteNav";
 import Reveal from "@/components/Reveal";
-import BookingButton, { BOOKING_URL } from "@/components/BookingButton";
 import ContactForm from "@/components/ContactForm";
 import ImagePlaceholder from "@/components/ImagePlaceholder";
+import IntakeBooking from "@/components/IntakeBooking";
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -45,9 +45,7 @@ export default function Home() {
 
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a
-                  href={BOOKING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#book"
                   className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-colors hover:bg-primary-active"
                 >
                   Book a free session
@@ -424,29 +422,30 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ───────────────────── BOOKING CTA (signature forest) ───────────────────── */}
-        <section id="book" className="mx-auto max-w-6xl px-5 pb-24 sm:px-8 sm:pb-28">
-          <Reveal>
-            <div className="relative overflow-hidden rounded-[22px] bg-forest px-7 py-14 sm:px-14 sm:py-20">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-forest-soft/60 blur-2xl"
-              />
-              <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-                <div>
+        {/* ───────────────────── BOOKING — intake form then calendar ───────────────────── */}
+        <section id="book" className="scroll-mt-20 border-t border-hairline bg-surface-soft/50">
+          <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
+            <Reveal>
+              <div className="relative overflow-hidden rounded-[22px] bg-forest px-7 py-12 sm:px-12 sm:py-14">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-forest-soft/60 blur-2xl"
+                />
+                <div className="relative max-w-2xl">
                   <Eyebrow>
                     <span className="text-sage">Ready when you are</span>
                   </Eyebrow>
-                  <h2 className="mt-6 font-serif text-[2.1rem] leading-tight text-cream sm:text-[2.7rem]">
+                  <h2 className="mt-6 font-serif text-[2.1rem] leading-tight text-cream sm:text-[2.6rem]">
                     Take the first small step.
                   </h2>
-                  <p className="mt-4 max-w-md text-[1.02rem] leading-relaxed text-sage">
-                    Choose a time that works for you. There&apos;s nothing to
-                    prepare and nothing to prove — just bring yourself, exactly
-                    as you are.
+                  <p className="mt-4 text-[1.02rem] leading-relaxed text-sage">
+                    A short, private form first — it helps Shagufta understand
+                    how best to support you, and makes your session feel
+                    unhurried from the very start. Then you&apos;ll choose a
+                    time. It&apos;s free, and there&apos;s nothing to prepare.
                   </p>
                   <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-sage/90">
-                    {["Free of charge", "Private 1-to-1", "Reschedule anytime"].map(
+                    {["Free of charge", "Private & confidential", "About 2 minutes"].map(
                       (t) => (
                         <li key={t} className="inline-flex items-center gap-2">
                           <span className="h-1.5 w-1.5 rounded-full bg-sage" />
@@ -456,22 +455,13 @@ export default function Home() {
                     )}
                   </ul>
                 </div>
-
-                <div className="rounded-[18px] bg-canvas/95 p-7 sm:p-8">
-                  <p className="text-sm font-medium uppercase tracking-[0.14em] text-accent-deep">
-                    Book your session
-                  </p>
-                  <p className="mt-2 text-[15px] leading-relaxed text-body">
-                    Pick a slot on the calendar below. You&apos;ll get a
-                    confirmation right away.
-                  </p>
-                  <div className="mt-5">
-                    <BookingButton label="Book an appointment" />
-                  </div>
-                </div>
               </div>
-            </div>
-          </Reveal>
+            </Reveal>
+
+            <Reveal delay={100} className="mx-auto mt-8 max-w-2xl">
+              <IntakeBooking />
+            </Reveal>
+          </div>
         </section>
 
         {/* ───────────────────── CONTACT (Convex) ───────────────────── */}
@@ -551,9 +541,7 @@ export default function Home() {
                 Take the first step
               </span>
               <a
-                href={BOOKING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#book"
                 className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
               >
                 Book a free session

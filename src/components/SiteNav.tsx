@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BOOKING_URL } from "./BookingButton";
 
 const links = [
   { href: "#note", label: "Her note" },
@@ -53,9 +52,7 @@ export default function SiteNav() {
             </a>
           ))}
           <a
-            href={BOOKING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#book"
             className="rounded-[14px] bg-primary px-5 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             Book a session
@@ -102,9 +99,7 @@ export default function SiteNav() {
               </a>
             ))}
             <a
-              href={BOOKING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#book"
               onClick={() => setOpen(false)}
               className="mt-2 rounded-[14px] bg-primary px-5 py-3 text-center text-sm font-medium text-on-primary"
             >
