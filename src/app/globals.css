@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/*
+  Design tokens adapted from DESIGN.md (Airtable editorial system),
+  warmed toward a calm, trustworthy palette for a psychology
+  listening practice. White canvas, dark-ink type, generous
+  whitespace, signature forest / cream / sage surfaces, and a
+  near-black CTA. Accent teal matches the booking button.
+*/
+
+:root {
+  /* surface */
+  --canvas: #fffdf9;
+  --surface-soft: #f6f4ee;
+  --surface-strong: #ece8df;
+  --surface-dark: #14211c;
+
+  /* ink / text */
+  --ink: #1c241f;
+  --body: #3a423c;
+  --muted: #6b726a;
+  --hairline: #e4ded2;
+  --border-strong: #c9c2b4;
+
+  /* primary action */
+  --primary: #1c241f;
+  --primary-active: #0f1813;
+  --on-primary: #fffdf9;
+
+  /* signature surfaces */
+  --forest: #14342a;
+  --forest-soft: #1d4337;
+  --cream: #f3ead7;
+  --sage: #aecbb9;
+  --peach: #f4c9a0;
+  --clay: #c47a52;
+
+  /* accent (matches Google booking button #009688) */
+  --accent: #0e8074;
+  --accent-deep: #0a5f56;
+  --accent-soft: #d7ece7;
+
+  --link: #0a5f56;
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-dark: var(--surface-dark);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-on-primary: var(--on-primary);
+  --color-forest: var(--forest);
+  --color-forest-soft: var(--forest-soft);
+  --color-cream: var(--cream);
+  --color-sage: var(--sage);
+  --color-peach: var(--peach);
+  --color-clay: var(--clay);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-link: var(--link);
+
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+}
+
+* {
+  border-color: var(--hairline);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--body);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes reveal {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.font-serif {
+  font-family: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+}
