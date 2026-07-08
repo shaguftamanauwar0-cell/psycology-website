@@ -1,7 +1,7 @@
+import Image from "next/image";
 import SiteNav from "@/components/SiteNav";
 import Reveal from "@/components/Reveal";
 import ContactForm from "@/components/ContactForm";
-import ImagePlaceholder from "@/components/ImagePlaceholder";
 import IntakeBooking from "@/components/IntakeBooking";
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -31,7 +31,7 @@ export default function Home() {
           <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-16 sm:px-8 sm:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28">
             <Reveal>
               <Eyebrow>Free listening &amp; reflection sessions</Eyebrow>
-              <h1 className="mt-6 font-serif text-[2.6rem] leading-[1.08] tracking-tight text-ink sm:text-[3.4rem]">
+              <h1 className="mt-6 font-serif text-[2.1rem] leading-[1.08] tracking-tight text-ink sm:text-[3.4rem]">
                 A calm, private space
                 <br />
                 to be truly heard.
@@ -68,7 +68,7 @@ export default function Home() {
               </div>
 
               <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
-                {["Confidential", "Non-judgmental", "Always free", "Online"].map(
+                {["Confidential", "Non-judgmental", "Free", "Online"].map(
                   (t) => (
                     <span key={t} className="inline-flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -81,12 +81,16 @@ export default function Home() {
 
             <Reveal delay={120} className="relative">
               <div className="relative">
-                <ImagePlaceholder
-                  label="Add a warm portrait"
-                  hint="A friendly photo of Shagufta · portrait, ~4:5"
-                  tone="cream"
-                  className="aspect-[4/5] w-full shadow-[0_24px_60px_-30px_rgba(20,52,42,0.35)]"
-                />
+                <div className="relative aspect-[3/4] max-h-[420px] w-full overflow-hidden rounded-[22px] shadow-[0_24px_60px_-30px_rgba(20,52,42,0.35)] sm:max-h-none sm:aspect-[4/5]">
+                  <Image
+                    src="/shagufta-portrait.jpg"
+                    alt="Shagufta Manauwar"
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    priority
+                  />
+                </div>
                 <div className="absolute -bottom-6 -left-4 hidden max-w-[200px] rounded-[14px] border border-hairline bg-canvas/95 p-4 shadow-[0_18px_40px_-24px_rgba(20,52,42,0.4)] backdrop-blur sm:block">
                   <p className="font-serif text-base leading-snug text-ink">
                     &ldquo;You&apos;re welcome here.&rdquo;
@@ -105,7 +109,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-hairline px-5 sm:px-8 md:grid-cols-4">
             {[
               { k: "100%", v: "Confidential" },
-              { k: "0", v: "Cost — always free" },
+              { k: "0", v: "Cost — free" },
               { k: "1-to-1", v: "Private sessions" },
               { k: "No", v: "Judgment, ever" },
             ].map((s, i) => (
@@ -152,7 +156,8 @@ export default function Home() {
                 <p className="mt-5">
                   My role is simply to listen carefully, ask thoughtful
                   questions, and help you explore your thoughts and feelings in
-                  a supportive environment.
+                  a supportive environment. These are genuine one-to-one
+                  conversations with me, not AI-generated responses.
                 </p>
                 <p className="mt-5">
                   Whether you&apos;re feeling overwhelmed, confused, stuck,
@@ -235,12 +240,15 @@ export default function Home() {
         <section id="expect" className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <Reveal>
-              <ImagePlaceholder
-                label="Add a calming image"
-                hint="A quiet, warm scene — soft light, plants, a cup of tea · ~4:3"
-                tone="sage"
-                className="aspect-[4/3] w-full"
-              />
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[18px]">
+                <Image
+                  src="/calming-space.png"
+                  alt="A calm, cozy space with a journal, tea, and soft light"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              </div>
             </Reveal>
             <Reveal delay={100}>
               <Eyebrow>What to expect</Eyebrow>
@@ -370,58 +378,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ───────────────────── WHY IT FEELS SAFE (trust + images) ───────────────────── */}
-        <section className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
-          <Reveal className="max-w-2xl">
-            <Eyebrow>Why people feel at ease</Eyebrow>
-            <h2 className="mt-6 font-serif text-[2rem] leading-tight text-ink sm:text-[2.5rem]">
-              Built entirely around your comfort.
-            </h2>
-          </Reveal>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                tone: "cream" as const,
-                label: "Add a cozy space photo",
-                hint: "Where you'll feel at ease · ~1:1",
-                t: "A space that feels human",
-                d: "No clinical desks or forms. Just a calm, ordinary conversation between two people.",
-              },
-              {
-                tone: "sage" as const,
-                label: "Add a candid moment",
-                hint: "Two people talking · ~1:1",
-                t: "Genuinely heard",
-                d: "You set the direction. I follow with full attention and care, never an agenda.",
-              },
-              {
-                tone: "peach" as const,
-                label: "Add a detail shot",
-                hint: "Plant, journal, soft light · ~1:1",
-                t: "Always confidential",
-                d: "What you share stays between us. Trust is the foundation of everything here.",
-              },
-            ].map((card, i) => (
-              <Reveal as="article" key={card.t} delay={i * 100}>
-                <div className="overflow-hidden rounded-[14px] border border-hairline bg-canvas">
-                  <ImagePlaceholder
-                    label={card.label}
-                    hint={card.hint}
-                    tone={card.tone}
-                    className="aspect-[5/4] w-full rounded-none border-x-0 border-t-0"
-                  />
-                  <div className="p-6">
-                    <h3 className="text-lg font-medium text-ink">{card.t}</h3>
-                    <p className="mt-2 text-[15px] leading-relaxed text-body">
-                      {card.d}
-                    </p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
         {/* ───────────────────── BOOKING — intake form then calendar ───────────────────── */}
         <section id="book" className="scroll-mt-20 border-t border-hairline bg-surface-soft/50">
           <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
@@ -516,7 +472,7 @@ export default function Home() {
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted">
                 Private listening and reflection sessions — a safe, respectful,
-                and non-judgmental space to talk. Always free and confidential.
+                and non-judgmental space to talk. Free and confidential.
               </p>
             </div>
             <nav className="flex flex-col gap-3 text-sm text-body">
