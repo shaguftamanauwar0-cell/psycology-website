@@ -306,85 +306,55 @@ export default function IntakeBooking() {
     );
   }
 
-  // ---- Pre-step: check slots first ----
+  // ---- Pre-step: view-only slot preview ----
   if (step === -1) {
+    // Strip ?gv=true — the base URL embeds cleanly
+    const embedUrl = BOOKING_URL.replace(/[?&]gv=true/, "");
+
     return (
       <div className="rounded-[18px] border border-hairline bg-canvas p-6 sm:p-9">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-accent-soft text-accent-deep text-lg font-serif">
-            1
-          </div>
-          <div>
-            <h3 className="font-serif text-xl text-ink">
-              First — check if a time works for you
-            </h3>
-            <p className="mt-1 text-sm leading-relaxed text-body">
-              Before filling the form, take a quick look at available slots. If
-              you see a time that suits you, come back here and complete the
-              short form to confirm your booking.
-            </p>
-          </div>
-        </div>
+        <h3 className="font-serif text-2xl text-ink">Check available times</h3>
+        <p className="mt-2 text-sm leading-relaxed text-body">
+          Browse below to see when Shagufta is free. When you spot a time that
+          works, click <span className="font-medium text-ink">&ldquo;Start booking&rdquo;</span> to
+          fill the short intake form — that&apos;s what reserves your slot.
+        </p>
 
-        <a
-          href={BOOKING_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 flex w-full items-center justify-between gap-3 rounded-[14px] border border-accent/40 bg-accent-soft/40 px-5 py-4 transition-colors hover:bg-accent-soft"
-        >
-          <div className="flex items-center gap-3">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="flex-none text-accent-deep"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M3 9h18" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-ink">View available appointment times</p>
-              <p className="text-xs text-muted">Opens in a new tab · Google Calendar</p>
-            </div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-none text-accent-deep">
-            <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </a>
-
-        <div className="relative my-6 flex items-center gap-3">
-          <span className="h-px flex-1 bg-hairline" />
-          <span className="text-xs text-muted">found a slot that works?</span>
-          <span className="h-px flex-1 bg-hairline" />
-        </div>
-
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-surface-strong text-muted text-lg font-serif">
-            2
-          </div>
-          <div className="flex-1">
-            <h3 className="font-serif text-xl text-ink">
-              Fill the short form to confirm
-            </h3>
-            <p className="mt-1 text-sm leading-relaxed text-body">
-              Takes about 2 minutes. It helps Shagufta understand how best to
-              support you so your session feels unhurried from the start.
-            </p>
+        {/* View-only calendar embed — pointer-events:none prevents booking */}
+        <div className="relative mt-5 overflow-hidden rounded-[14px] border border-hairline bg-surface-soft">
+          <iframe
+            src={embedUrl}
+            title="Available appointment times"
+            style={{ width: "100%", height: 480, border: 0, pointerEvents: "none", display: "block" }}
+            loading="lazy"
+          />
+          {/* Transparent touch blocker for mobile */}
+          <div
+            aria-hidden
+            style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "default" }}
+          />
+          {/* Pill label so it's obvious this is preview-only */}
+          <div
+            style={{ position: "absolute", top: 10, right: 10 }}
+            className="rounded-full border border-hairline bg-canvas/90 px-3 py-1 text-xs text-muted backdrop-blur"
+          >
+            Preview only · fill the form to book
           </div>
         </div>
 
         <button
           type="button"
           onClick={() => { setStep(0); scrollTop(); }}
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
-          Yes, I found a time — start the form
+          I see a slot I want — start booking
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        <p className="mt-3 text-center text-xs text-muted">
+          Takes about 2 minutes · free &amp; confidential
+        </p>
       </div>
     );
   }
