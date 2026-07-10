@@ -320,25 +320,32 @@ export default function IntakeBooking() {
           fill the short intake form — that&apos;s what reserves your slot.
         </p>
 
-        {/* View-only calendar embed — pointer-events:none prevents booking */}
+        {/* Interactive calendar — users can browse dates & slots.
+            A solid footer overlay sits over Google's "Next/Book" button
+            so the only way to actually complete a booking is via our form. */}
         <div className="relative mt-5 overflow-hidden rounded-[14px] border border-hairline bg-surface-soft">
           <iframe
             src={embedUrl}
             title="Available appointment times"
-            style={{ width: "100%", height: 480, border: 0, pointerEvents: "none", display: "block" }}
+            style={{ width: "100%", height: 600, border: 0, display: "block" }}
             loading="lazy"
           />
-          {/* Transparent touch blocker for mobile */}
+          {/* Blocks Google's booking confirmation button at the bottom */}
           <div
             aria-hidden
-            style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "default" }}
-          />
-          {/* Pill label so it's obvious this is preview-only */}
+            style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80 }}
+            className="flex items-center justify-center bg-canvas/95 backdrop-blur-sm border-t border-hairline"
+          >
+            <p className="text-sm font-medium text-ink">
+              Found a time? ↓ Use the button below to fill the form &amp; book it.
+            </p>
+          </div>
+          {/* Top pill */}
           <div
             style={{ position: "absolute", top: 10, right: 10 }}
             className="rounded-full border border-hairline bg-canvas/90 px-3 py-1 text-xs text-muted backdrop-blur"
           >
-            Preview only · fill the form to book
+            Browse only · form required to book
           </div>
         </div>
 
