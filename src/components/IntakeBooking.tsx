@@ -111,7 +111,8 @@ const CRISIS_RESOURCES = [
 ];
 
 export default function IntakeBooking() {
-  const [step, setStep] = useState(0); // 0,1,2 form steps; 3 = booking
+  // -1 = slot check pre-step, 0/1/2 = form steps, 3 = booking
+  const [step, setStep] = useState(-1);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [showCrisis, setShowCrisis] = useState(false);
@@ -162,7 +163,7 @@ export default function IntakeBooking() {
   function back() {
     setError("");
     setShowCrisis(false);
-    setStep((s) => Math.max(0, s - 1));
+    setStep((s) => Math.max(-1, s - 1));
     scrollTop();
   }
 
@@ -214,7 +215,7 @@ export default function IntakeBooking() {
     }
   }
 
-  // ---- Crisis screen (safety = yes) ----
+  // ---- Crisis screen ----
   if (showCrisis) {
     return (
       <div className="rounded-[18px] border border-clay/40 bg-peach/25 p-7 sm:p-9">
@@ -262,7 +263,7 @@ export default function IntakeBooking() {
     );
   }
 
-  // ---- Booking step (intake completed, safety = no) ----
+  // ---- Booking confirmed ----
   if (step === 3) {
     return (
       <div className="rounded-[18px] border border-accent/30 bg-canvas p-7 sm:p-9">
@@ -281,9 +282,9 @@ export default function IntakeBooking() {
           Thank you, {name.split(" ")[0] || "there"}. One last step.
         </h3>
         <p className="mt-2 text-[15px] leading-relaxed text-body">
-          Your details have been shared privately with Shagufta. Now pick a time
-          that suits you and you&apos;ll be all set — there&apos;s nothing else
-          to prepare.
+          Your details have been shared privately with Shagufta. Now pick the
+          time you saw earlier and you&apos;ll be all set — there&apos;s nothing
+          else to prepare.
         </p>
         <div className="mt-6">
           <BookingButton label="Choose your appointment time" />
@@ -305,7 +306,90 @@ export default function IntakeBooking() {
     );
   }
 
-  // ---- Multi-step form ----
+  // ---- Pre-step: check slots first ----
+  if (step === -1) {
+    return (
+      <div className="rounded-[18px] border border-hairline bg-canvas p-6 sm:p-9">
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-accent-soft text-accent-deep text-lg font-serif">
+            1
+          </div>
+          <div>
+            <h3 className="font-serif text-xl text-ink">
+              First — check if a time works for you
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-body">
+              Before filling the form, take a quick look at available slots. If
+              you see a time that suits you, come back here and complete the
+              short form to confirm your booking.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={BOOKING_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex w-full items-center justify-between gap-3 rounded-[14px] border border-accent/40 bg-accent-soft/40 px-5 py-4 transition-colors hover:bg-accent-soft"
+        >
+          <div className="flex items-center gap-3">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="flex-none text-accent-deep"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M3 9h18" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-ink">View available appointment times</p>
+              <p className="text-xs text-muted">Opens in a new tab · Google Calendar</p>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-none text-accent-deep">
+            <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+
+        <div className="relative my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-hairline" />
+          <span className="text-xs text-muted">found a slot that works?</span>
+          <span className="h-px flex-1 bg-hairline" />
+        </div>
+
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-surface-strong text-muted text-lg font-serif">
+            2
+          </div>
+          <div className="flex-1">
+            <h3 className="font-serif text-xl text-ink">
+              Fill the short form to confirm
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-body">
+              Takes about 2 minutes. It helps Shagufta understand how best to
+              support you so your session feels unhurried from the start.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setStep(0); scrollTop(); }}
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+        >
+          Yes, I found a time — start the form
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // ---- Multi-step form (steps 0, 1, 2) ----
   return (
     <div className="rounded-[18px] border border-hairline bg-canvas p-6 sm:p-9">
       {/* progress */}
@@ -576,17 +660,13 @@ export default function IntakeBooking() {
 
       {/* nav buttons */}
       <div className="mt-8 flex items-center justify-between gap-3">
-        {step > 0 ? (
-          <button
-            type="button"
-            onClick={back}
-            className="rounded-[14px] border border-border-strong bg-canvas px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
-          >
-            Back
-          </button>
-        ) : (
-          <span className="text-xs text-muted">Takes about 2 minutes</span>
-        )}
+        <button
+          type="button"
+          onClick={back}
+          className="rounded-[14px] border border-border-strong bg-canvas px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
+        >
+          Back
+        </button>
 
         {step < 2 ? (
           <button
