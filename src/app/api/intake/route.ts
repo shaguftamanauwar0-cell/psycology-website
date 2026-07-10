@@ -60,6 +60,10 @@ async function sendNotificationEmail(payload: {
     return;
   }
 
+  // Send to both the sender account and any additional notify address (e.g. Shagufta's email)
+  const notifyEmail = process.env.NOTIFY_EMAIL;
+  const recipients = [gmailUser, notifyEmail].filter(Boolean).join(", ");
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: gmailUser, pass: gmailPass },
@@ -105,7 +109,7 @@ async function sendNotificationEmail(payload: {
 
   await transporter.sendMail({
     from: `"Shagufta's Website" <${gmailUser}>`,
-    to: gmailUser,
+    to: recipients,
     replyTo: payload.email,
     subject: `New session request from ${payload.name} (${payload.gender}, ${payload.age})`,
     html,
