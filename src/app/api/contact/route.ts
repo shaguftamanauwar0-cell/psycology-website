@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabaseAdmin";
+import { getDb } from "@/lib/db";
 import { sendContactEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -32,19 +32,18 @@ export async function POST(request: Request) {
     );
   }
 
-  // Persist to Supabase when configured (best-effort — don't block on it).
-  const sb = getSupabase();
-  if (sb) {
-    const { error } = await sb.from("messages").insert({ name, email, message });
-    if (error) console.error("[contact] Supabase insert failed:", error.message);
+  // Persist to Postgres when configured (best-effort — don't block on it).
+  const sql = getDb();
+  if (sql) {
+    try {
+      await sql`insert into messages (name, email, message) values (${name}, ${email}, ${message})`;
+    } catch (err) {
+      console.error("[contact] insert failed:", err);
+    }
   } else {
-    console.warn("[contact] Supabase not configured; message not persisted:", {
-      name,
-      email,
-    });
+    console.warn("[contact] DB not configured; message not persisted:", { name, email });
   }
 
-  // Email the admin.
   sendContactEmail({ name, email, message }).catch((err) =>
     console.error("[contact] email failed:", err),
   );

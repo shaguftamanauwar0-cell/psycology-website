@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabaseAdmin";
+import { getDb } from "@/lib/db";
 import { getPlan } from "@/lib/pricing";
 import { sendAdminBookingEmail } from "@/lib/email";
 
@@ -28,7 +28,7 @@ const asStringArray = (val: unknown): string[] =>
     : [];
 
 const str = (v: unknown, max = 4000) =>
-  (v ?? "").toString().trim().slice(0, max) || undefined;
+  (v ?? "").toString().trim().slice(0, max) || null;
 
 export async function POST(request: Request) {
   let body: Body;
@@ -60,97 +60,76 @@ export async function POST(request: Request) {
     );
   }
 
-  const sb = getSupabase();
-  if (!sb) {
+  const sql = getDb();
+  if (!sql) {
     return NextResponse.json(
       { error: "Bookings aren't available yet. Please try again shortly." },
       { status: 503 },
     );
   }
 
-  // Claim the slot atomically: only succeeds if still 'available'.
-  let slotStartsAt: string | null = null;
-  const slotId = body.slotId?.toString();
-  if (slotId) {
-    const { data: claimed, error: claimErr } = await sb
-      .from("slots")
-      .update({ status: "held" })
-      .eq("id", slotId)
-      .eq("status", "available")
-      .select("id, starts_at")
-      .maybeSingle();
+  const slotId = body.slotId?.toString() || null;
 
-    if (claimErr) {
-      console.error("[book] slot claim failed:", claimErr.message);
-      return NextResponse.json(
-        { error: "We couldn't reserve that time. Please try again." },
-        { status: 500 },
-      );
-    }
-    if (!claimed) {
-      return NextResponse.json(
-        { error: "Sorry, that time was just taken. Please pick another slot." },
-        { status: 409 },
-      );
-    }
-    slotStartsAt = claimed.starts_at as string;
-  }
-
-  const record = {
-    slot_id: slotId ?? null,
-    plan: plan.id,
-    amount: plan.amount,
-    name,
-    age: Math.max(0, Math.min(120, Math.round(age))),
-    gender,
-    location: str(body.location, 120) ?? null,
-    email,
-    reason: str(body.reason) ?? null,
-    feelings: asStringArray(body.feelings),
-    topics: asStringArray(body.topics),
-    spoken_before: str(body.spokenBefore, 120) ?? null,
-    language: str(body.language, 60) ?? null,
-    desired_outcome: str(body.desiredOutcome) ?? null,
-    notes: str(body.notes) ?? null,
-    status: "pending_payment",
-  };
-
-  const { data: booking, error: insertErr } = await sb
-    .from("bookings")
-    .insert(record)
-    .select("id")
-    .single();
-
-  if (insertErr) {
-    console.error("[book] insert failed:", insertErr.message);
-    // Release the slot we just held so it isn't stuck.
+  try {
+    // Claim the slot atomically: only succeeds if still 'available'.
+    let slotStartsAt: Date | null = null;
     if (slotId) {
-      await sb.from("slots").update({ status: "available" }).eq("id", slotId);
+      const claimed = await sql`
+        update slots set status = 'held'
+        where id = ${slotId} and status = 'available'
+        returning id, starts_at`;
+      if (claimed.length === 0) {
+        return NextResponse.json(
+          { error: "Sorry, that time was just taken. Please pick another slot." },
+          { status: 409 },
+        );
+      }
+      slotStartsAt = claimed[0].starts_at as Date;
     }
+
+    const feelings = asStringArray(body.feelings);
+    const topics = asStringArray(body.topics);
+    const ageInt = Math.max(0, Math.min(120, Math.round(age)));
+    const location = str(body.location, 120);
+    const reason = str(body.reason);
+    const spokenBefore = str(body.spokenBefore, 120);
+    const language = str(body.language, 60);
+    const desiredOutcome = str(body.desiredOutcome);
+    const notes = str(body.notes);
+
+    let inserted;
+    try {
+      inserted = await sql`
+        insert into bookings
+          (slot_id, plan, amount, name, age, gender, location, email, reason,
+           feelings, topics, spoken_before, language, desired_outcome, notes, status)
+        values
+          (${slotId}, ${plan.id}, ${plan.amount}, ${name}, ${ageInt}, ${gender},
+           ${location}, ${email}, ${reason}, ${feelings}, ${topics},
+           ${spokenBefore}, ${language}, ${desiredOutcome}, ${notes}, 'pending_payment')
+        returning id`;
+    } catch (insertErr) {
+      // Release the slot we just held so it isn't stuck.
+      if (slotId) {
+        await sql`update slots set status = 'available' where id = ${slotId}`;
+      }
+      throw insertErr;
+    }
+
+    sendAdminBookingEmail({
+      name, age: ageInt, gender, location, email,
+      plan: plan.id, amount: plan.amount,
+      slotStartsAt: slotStartsAt ? slotStartsAt.toISOString() : null,
+      reason, feelings, topics,
+      spokenBefore, language, desiredOutcome, notes,
+    }).catch((err) => console.error("[book] admin email failed:", err));
+
+    return NextResponse.json({ ok: true, bookingId: inserted[0].id });
+  } catch (err) {
+    console.error("[book] failed:", err);
     return NextResponse.json(
       { error: "We couldn't save your booking just now. Please try again." },
       { status: 500 },
     );
   }
-
-  // Fire the admin notification — non-blocking.
-  sendAdminBookingEmail({
-    name,
-    age: record.age,
-    gender,
-    location: record.location,
-    email,
-    plan: plan.id,
-    amount: plan.amount,
-    slotStartsAt,
-    reason: record.reason,
-    feelings: record.feelings,
-    topics: record.topics,
-    spokenBefore: record.spoken_before,
-    language: record.language,
-    desiredOutcome: record.desired_outcome,
-    notes: record.notes,
-  }).catch((err) => console.error("[book] admin email failed:", err));
-
-  return NextResponse.json({ ok: true, bookingId: booking.id });
 }

@@ -246,26 +246,31 @@ export default function IntakeBooking() {
             <span className="text-sm text-muted">Amount to pay</span>
             <span className="font-serif text-2xl text-ink">₹{selectedPlan?.amount}</span>
           </div>
-          {UPI_ID ? (
-            <div className="mt-4 border-t border-hairline pt-4">
-              <p className="text-sm text-body">Pay via any UPI app (GPay, PhonePe, Paytm) to:</p>
-              <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-hairline bg-canvas px-4 py-3">
+
+          <div className="mt-4 flex flex-col items-center border-t border-hairline pt-5">
+            <p className="text-sm text-body">Scan to pay with any UPI app (PhonePe, GPay, Paytm)</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/upi-qr.jpg"
+              alt="UPI payment QR code"
+              width={220}
+              height={220}
+              className="mt-3 h-56 w-56 rounded-[12px] border border-hairline bg-canvas object-contain p-2"
+            />
+            {UPI_ID && (
+              <div className="mt-3 flex items-center gap-3 rounded-md border border-hairline bg-canvas px-4 py-2.5">
                 <div>
-                  <p className="font-medium text-ink">{UPI_ID}</p>
+                  <p className="text-sm font-medium text-ink">{UPI_ID}</p>
                   <p className="text-xs text-muted">{UPI_NAME}</p>
                 </div>
                 <CopyButton value={UPI_ID} />
               </div>
-              <p className="mt-3 text-xs text-muted">
-                Please add your name <span className="font-medium text-ink">({name.split(" ")[0]})</span> in
-                the payment note so Shagufta can match it to your booking.
-              </p>
-            </div>
-          ) : (
-            <p className="mt-4 border-t border-hairline pt-4 text-sm text-body">
-              Shagufta will email you the payment details at <span className="font-medium text-ink">{email}</span> shortly.
+            )}
+            <p className="mt-3 text-center text-xs text-muted">
+              Please add your name <span className="font-medium text-ink">({name.split(" ")[0] || "your name"})</span> in
+              the payment note so Shagufta can match it to your booking.
             </p>
-          )}
+          </div>
         </div>
 
         <div className="mt-5 rounded-[12px] border border-clay/25 bg-peach/20 px-4 py-3">

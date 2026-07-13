@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabaseAdmin";
+import { getDb } from "@/lib/db";
 import { isAdminRequest } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
@@ -17,20 +17,20 @@ export async function GET(request: Request) {
   const denied = guard(request);
   if (denied) return denied;
 
-  const sb = getSupabase();
-  if (!sb) return NextResponse.json({ slots: [] });
+  const sql = getDb();
+  if (!sql) return NextResponse.json({ slots: [] });
 
-  const { data, error } = await sb
-    .from("slots")
-    .select("id, starts_at, duration_min, status")
-    .gt("starts_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
-    .order("starts_at", { ascending: true })
-    .limit(500);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const rows = await sql`
+      select id, starts_at, duration_min, status
+      from slots
+      where starts_at > now() - interval '1 day'
+      order by starts_at asc
+      limit 500`;
+    return NextResponse.json({ slots: rows });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  return NextResponse.json({ slots: data ?? [] });
 }
 
 /** Create one or more slots. Body: { slots: [{ startsAt, durationMin }] } */
@@ -38,8 +38,8 @@ export async function POST(request: Request) {
   const denied = guard(request);
   if (denied) return denied;
 
-  const sb = getSupabase();
-  if (!sb) {
+  const sql = getDb();
+  if (!sql) {
     return NextResponse.json({ error: "Database not configured." }, { status: 503 });
   }
 
@@ -53,30 +53,35 @@ export async function POST(request: Request) {
 
   const rows = items
     .map((s) => ({
-      starts_at: s.startsAt ? new Date(s.startsAt).toISOString() : null,
+      starts_at: s.startsAt ? new Date(s.startsAt) : null,
       duration_min: Number(s.durationMin) > 0 ? Math.round(Number(s.durationMin)) : 30,
-      status: "available",
+      status: "available" as const,
     }))
-    .filter((r) => r.starts_at && !Number.isNaN(Date.parse(r.starts_at)));
+    .filter((r): r is { starts_at: Date; duration_min: number; status: "available" } =>
+      r.starts_at !== null && !Number.isNaN(r.starts_at.getTime()),
+    );
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "No valid times provided." }, { status: 400 });
   }
 
-  const { data, error } = await sb.from("slots").insert(rows).select("id");
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const created = await sql`
+      insert into slots ${sql(rows, "starts_at", "duration_min", "status")}
+      returning id`;
+    return NextResponse.json({ ok: true, created: created.length });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, created: data?.length ?? 0 });
 }
 
-/** Delete a slot. Body: { id }. Refuses if a booking already holds it. */
+/** Delete a slot. Body: { id }. */
 export async function DELETE(request: Request) {
   const denied = guard(request);
   if (denied) return denied;
 
-  const sb = getSupabase();
-  if (!sb) {
+  const sql = getDb();
+  if (!sql) {
     return NextResponse.json({ error: "Database not configured." }, { status: 503 });
   }
 
@@ -89,9 +94,10 @@ export async function DELETE(request: Request) {
   }
   if (!id) return NextResponse.json({ error: "Missing slot id." }, { status: 400 });
 
-  const { error } = await sb.from("slots").delete().eq("id", id);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    await sql`delete from slots where id = ${id}`;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }
