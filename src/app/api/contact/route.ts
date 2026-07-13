@@ -1,27 +1,23 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { makeFunctionReference } from "convex/server";
+import { getSupabase } from "@/lib/supabaseAdmin";
+import { sendContactEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
-const convexUrl =
-  process.env.NEXT_PUBLIC_CONVEX_URL ?? process.env.CONVEX_URL ?? "";
-
-// Reference the mutation by name so this route compiles without the
-// generated Convex types present (they appear after `npx convex dev`).
-const createMessage = makeFunctionReference<"mutation">("messages:create");
-
 export async function POST(request: Request) {
-  let body: { name?: string; email?: string; message?: string };
+  let body: { name?: string; email?: string; message?: string; company?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const name = (body.name ?? "").toString().trim();
-  const email = (body.email ?? "").toString().trim();
-  const message = (body.message ?? "").toString().trim();
+  // Honeypot — bots fill hidden fields.
+  if (body.company) return NextResponse.json({ ok: true });
+
+  const name = (body.name ?? "").toString().trim().slice(0, 120);
+  const email = (body.email ?? "").toString().trim().slice(0, 200);
+  const message = (body.message ?? "").toString().trim().slice(0, 4000);
 
   if (!name || !email || !message) {
     return NextResponse.json(
@@ -36,25 +32,22 @@ export async function POST(request: Request) {
     );
   }
 
-  // Persist to Convex when configured.
-  if (convexUrl) {
-    try {
-      const client = new ConvexHttpClient(convexUrl);
-      await client.mutation(createMessage, { name, email, message });
-    } catch (err) {
-      console.error("Convex write failed:", err);
-      return NextResponse.json(
-        { error: "We couldn't save your message just now. Please try again." },
-        { status: 502 },
-      );
-    }
+  // Persist to Supabase when configured (best-effort — don't block on it).
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.from("messages").insert({ name, email, message });
+    if (error) console.error("[contact] Supabase insert failed:", error.message);
   } else {
-    // No database configured yet — don't lose the message in logs.
-    console.warn(
-      "[contact] NEXT_PUBLIC_CONVEX_URL not set; message not persisted:",
-      { name, email, message },
-    );
+    console.warn("[contact] Supabase not configured; message not persisted:", {
+      name,
+      email,
+    });
   }
+
+  // Email the admin.
+  sendContactEmail({ name, email, message }).catch((err) =>
+    console.error("[contact] email failed:", err),
+  );
 
   return NextResponse.json({ ok: true });
 }

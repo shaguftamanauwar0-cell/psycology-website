@@ -1,41 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import BookingButton, { BOOKING_URL } from "./BookingButton";
+import { useEffect, useState } from "react";
+import { PLAN_LIST, PLANS, type PlanId } from "@/lib/pricing";
 
 const FEELINGS = [
-  "Calm",
-  "Confused",
-  "Overwhelmed",
-  "Anxious",
-  "Sad",
-  "Angry",
-  "Frustrated",
-  "Lonely",
-  "Other",
+  "Calm", "Confused", "Overwhelmed", "Anxious", "Sad",
+  "Angry", "Frustrated", "Lonely", "Other",
 ];
 
 const TOPICS = [
-  "Relationships",
-  "Family",
-  "Studies",
-  "Career",
-  "Self-confidence",
-  "Loneliness",
-  "Stress",
-  "Motivation",
-  "Decision-making",
-  "Personal growth",
-  "Other",
+  "Relationships", "Family", "Studies", "Career", "Self-confidence",
+  "Loneliness", "Stress", "Motivation", "Decision-making",
+  "Personal growth", "Other",
 ];
 
-const GENDERS = [
-  "Female",
-  "Male",
-  "Non-binary",
-  "Prefer not to say",
-  "Other",
-];
+const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say", "Other"];
 
 const SPOKEN = [
   "No, this is the first time",
@@ -46,20 +25,17 @@ const SPOKEN = [
 
 const LANGUAGES = ["English", "Hindi", "Urdu", "Other"];
 
+type Slot = { id: string; starts_at: string; duration_min: number };
+type Step = "select" | "about" | "story" | "safety" | "done";
 type Status = "idle" | "sending" | "error";
+
+const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "";
+const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME || "Shagufta Manauwar";
 
 const inputCls =
   "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-soft";
 
-function Chip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -77,24 +53,16 @@ function Chip({
 }
 
 function Field({
-  label,
-  required,
-  hint,
-  children,
+  label, required, hint, children,
 }: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
+  label: string; required?: boolean; hint?: string; children: React.ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-ink">
         {label}
         {required && <span className="text-accent-deep"> *</span>}
-        {!required && (
-          <span className="font-normal text-muted"> (optional)</span>
-        )}
+        {!required && <span className="font-normal text-muted"> (optional)</span>}
       </span>
       {hint && <span className="-mt-1 text-xs text-muted">{hint}</span>}
       {children}
@@ -110,14 +78,32 @@ const CRISIS_RESOURCES = [
   { name: "AASRA", detail: "+91-9820466726 (24/7)" },
 ];
 
+function fmtDay(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long",
+  });
+}
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit",
+  });
+}
+
 export default function IntakeBooking() {
-  // -1 = slot check pre-step, 0/1/2 = form steps, 3 = booking
-  const [step, setStep] = useState(-1);
+  const [step, setStep] = useState<Step>("select");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [showCrisis, setShowCrisis] = useState(false);
 
-  // form state
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(true);
+
+  // selection
+  const [planId, setPlanId] = useState<PlanId | "">("");
+  const [slotId, setSlotId] = useState<string>("");
+  const [flexible, setFlexible] = useState(false);
+
+  // form
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -132,82 +118,71 @@ export default function IntakeBooking() {
   const [notes, setNotes] = useState("");
   const [safety, setSafety] = useState<"" | "yes" | "no">("");
 
-  const toggle = (
-    arr: string[],
-    set: (v: string[]) => void,
-    value: string,
-  ) => {
+  useEffect(() => {
+    fetch("/api/slots")
+      .then((r) => r.json())
+      .then((d) => setSlots(Array.isArray(d.slots) ? d.slots : []))
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, []);
+
+  const toggle = (arr: string[], set: (v: string[]) => void, value: string) =>
     set(arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value]);
-  };
-
-  function validateStep1(): string {
-    if (!name.trim()) return "Please tell us your name or a nickname.";
-    if (!age.trim() || !Number.isFinite(Number(age)))
-      return "Please enter your age.";
-    if (!gender) return "Please choose an option for gender.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-      return "Please enter a valid email address.";
-    return "";
-  }
-
-  function next() {
-    setError("");
-    if (step === 0) {
-      const err = validateStep1();
-      if (err) return setError(err);
-    }
-    setStep((s) => s + 1);
-    scrollTop();
-  }
-
-  function back() {
-    setError("");
-    setShowCrisis(false);
-    setStep((s) => Math.max(-1, s - 1));
-    scrollTop();
-  }
 
   function scrollTop() {
-    if (typeof document !== "undefined") {
-      document.getElementById("book")?.scrollIntoView({ behavior: "smooth" });
-    }
+    document.getElementById("book")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const selectedPlan = planId ? PLANS[planId] : null;
+  const selectedSlot = slots.find((s) => s.id === slotId) || null;
+
+  // group slots by day for the picker
+  const grouped = slots.reduce<Record<string, Slot[]>>((acc, s) => {
+    const key = fmtDay(s.starts_at);
+    (acc[key] ??= []).push(s);
+    return acc;
+  }, {});
+
+  function goFromSelect() {
+    setError("");
+    if (!planId) return setError("Please choose a plan.");
+    if (!flexible && slots.length > 0 && !slotId)
+      return setError("Please pick a time, or choose “I'm flexible”.");
+    setStep("about");
+    scrollTop();
+  }
+
+  function goFromAbout() {
+    setError("");
+    if (!name.trim()) return setError("Please tell us your name or a nickname.");
+    if (!age.trim() || !Number.isFinite(Number(age))) return setError("Please enter your age.");
+    if (!gender) return setError("Please choose an option for gender.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      return setError("Please enter a valid email address.");
+    setStep("story");
+    scrollTop();
   }
 
   async function submit() {
     setError("");
-    if (safety === "") {
-      return setError("Please answer the safety question so we can keep you safe.");
-    }
-    if (safety === "yes") {
-      setShowCrisis(true);
-      return;
-    }
+    if (safety === "") return setError("Please answer the safety question so we can keep you safe.");
+    if (safety === "yes") return setShowCrisis(true);
+
     setStatus("sending");
     try {
-      const res = await fetch("/api/intake", {
+      const res = await fetch("/api/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          age,
-          gender,
-          location,
-          email,
-          reason,
-          feelings,
-          topics,
-          spokenBefore,
-          language,
-          desiredOutcome,
-          notes,
+          planId, slotId: flexible ? "" : slotId,
+          name, age, gender, location, email, reason,
+          feelings, topics, spokenBefore, language, desiredOutcome, notes,
         }),
       });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}));
-        throw new Error(b.error || "Something went wrong.");
-      }
+      const b = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(b.error || "Something went wrong.");
       setStatus("idle");
-      setStep(3);
+      setStep("done");
       scrollTop();
     } catch (err) {
       setStatus("error");
@@ -219,464 +194,372 @@ export default function IntakeBooking() {
   if (showCrisis) {
     return (
       <div className="rounded-[18px] border border-clay/40 bg-peach/25 p-7 sm:p-9">
-        <h3 className="font-serif text-2xl text-clay">
-          Please reach out for support right now.
-        </h3>
+        <h3 className="font-serif text-2xl text-clay">Please reach out for support right now.</h3>
         <p className="mt-3 text-[15px] leading-relaxed text-body">
-          Thank you for being honest — that took courage. Because you&apos;re
-          having thoughts of self-harm or suicide, these listening sessions
-          aren&apos;t the right kind of support for what you&apos;re going
-          through, and it wouldn&apos;t be safe to wait. You deserve to talk to
-          someone trained to help with exactly this, today.
+          Thank you for being honest — that took courage. Because you&apos;re having thoughts of
+          self-harm or suicide, these listening sessions aren&apos;t the right kind of support for
+          what you&apos;re going through, and it wouldn&apos;t be safe to wait. You deserve to talk
+          to someone trained to help with exactly this, today.
         </p>
         <p className="mt-3 text-[15px] font-medium text-ink">
-          You are not alone, and your life matters. Please contact one of these
-          now:
+          You are not alone, and your life matters. Please contact one of these now:
         </p>
         <ul className="mt-4 flex flex-col gap-2">
           {CRISIS_RESOURCES.map((r) => (
-            <li
-              key={r.name}
-              className="flex flex-col rounded-md border border-clay/30 bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
+            <li key={r.name} className="flex flex-col rounded-md border border-clay/30 bg-canvas px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm font-medium text-ink">{r.name}</span>
               <span className="text-sm text-body">{r.detail}</span>
             </li>
           ))}
         </ul>
         <p className="mt-4 text-xs text-muted">
-          If you are outside India, please contact your local emergency number
-          or a crisis helpline in your country. If you are in immediate danger,
-          call emergency services right away.
+          If you are outside India, please contact your local emergency number or a crisis helpline
+          in your country. If you are in immediate danger, call emergency services right away.
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            setShowCrisis(false);
-            setSafety("");
-          }}
-          className="mt-5 text-sm text-accent-deep underline underline-offset-4"
-        >
+        <button type="button" onClick={() => { setShowCrisis(false); setSafety(""); }}
+          className="mt-5 text-sm text-accent-deep underline underline-offset-4">
           Go back
         </button>
       </div>
     );
   }
 
-  // ---- Booking confirmed ----
-  if (step === 3) {
+  // ---- Payment-pending confirmation ----
+  if (step === "done") {
     return (
       <div className="rounded-[18px] border border-accent/30 bg-canvas p-7 sm:p-9">
         <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-primary">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M5 13l4 4L19 7"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <h3 className="font-serif text-2xl text-ink">
-          Thank you, {name.split(" ")[0] || "there"}. One last step.
+          Thank you, {name.split(" ")[0] || "there"} — almost there.
         </h3>
         <p className="mt-2 text-[15px] leading-relaxed text-body">
-          Your details have been shared privately with Shagufta. Now pick the
-          time you saw earlier and you&apos;ll be all set — there&apos;s nothing
-          else to prepare.
-        </p>
-        <div className="mt-6">
-          <BookingButton label="Choose your appointment time" />
-        </div>
-        <p className="mt-5 text-xs text-muted">
-          Everything you shared is kept confidential. If the calendar
-          doesn&apos;t open,{" "}
-          <a
-            href={BOOKING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent-deep underline underline-offset-2"
-          >
-            use this direct link
-          </a>
-          .
-        </p>
-      </div>
-    );
-  }
-
-  // ---- Pre-step: view-only slot preview ----
-  if (step === -1) {
-    // Strip ?gv=true — the base URL embeds cleanly
-    const embedUrl = BOOKING_URL.replace(/[?&]gv=true/, "");
-
-    return (
-      <div className="rounded-[18px] border border-hairline bg-canvas p-6 sm:p-9">
-        <h3 className="font-serif text-2xl text-ink">Check available times</h3>
-        <p className="mt-2 text-sm leading-relaxed text-body">
-          Browse below to see when Shagufta is free. When you spot a time that
-          works, click <span className="font-medium text-ink">&ldquo;Start booking&rdquo;</span> to
-          fill the short intake form — that&apos;s what reserves your slot.
+          Your request has been received{selectedSlot ? ` for ${fmtDay(selectedSlot.starts_at)} at ${fmtTime(selectedSlot.starts_at)}` : ""}.
+          To confirm your {selectedPlan?.name.toLowerCase()} booking, please complete the payment below.
         </p>
 
-        {/* Interactive calendar — users can browse dates & slots.
-            A solid footer overlay sits over Google's "Next/Book" button
-            so the only way to actually complete a booking is via our form. */}
-        <div className="relative mt-5 overflow-hidden rounded-[14px] border border-hairline bg-surface-soft">
-          <iframe
-            src={embedUrl}
-            title="Available appointment times"
-            style={{ width: "100%", height: 600, border: 0, display: "block" }}
-            loading="lazy"
-          />
-          {/* Blocks Google's booking confirmation button at the bottom */}
-          <div
-            aria-hidden
-            style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80 }}
-            className="flex items-center justify-center bg-canvas/95 backdrop-blur-sm border-t border-hairline"
-          >
-            <p className="text-sm font-medium text-ink">
-              Found a time? ↓ Use the button below to fill the form &amp; book it.
+        <div className="mt-6 rounded-[14px] border border-hairline bg-surface-soft/60 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted">Amount to pay</span>
+            <span className="font-serif text-2xl text-ink">₹{selectedPlan?.amount}</span>
+          </div>
+          {UPI_ID ? (
+            <div className="mt-4 border-t border-hairline pt-4">
+              <p className="text-sm text-body">Pay via any UPI app (GPay, PhonePe, Paytm) to:</p>
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-hairline bg-canvas px-4 py-3">
+                <div>
+                  <p className="font-medium text-ink">{UPI_ID}</p>
+                  <p className="text-xs text-muted">{UPI_NAME}</p>
+                </div>
+                <CopyButton value={UPI_ID} />
+              </div>
+              <p className="mt-3 text-xs text-muted">
+                Please add your name <span className="font-medium text-ink">({name.split(" ")[0]})</span> in
+                the payment note so Shagufta can match it to your booking.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-4 border-t border-hairline pt-4 text-sm text-body">
+              Shagufta will email you the payment details at <span className="font-medium text-ink">{email}</span> shortly.
             </p>
-          </div>
-          {/* Top pill */}
-          <div
-            style={{ position: "absolute", top: 10, right: 10 }}
-            className="rounded-full border border-hairline bg-canvas/90 px-3 py-1 text-xs text-muted backdrop-blur"
-          >
-            Browse only · form required to book
-          </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => { setStep(0); scrollTop(); }}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
-        >
-          I see a slot I want — start booking
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <p className="mt-3 text-center text-xs text-muted">
-          Takes about 2 minutes · free &amp; confidential
+        <div className="mt-5 rounded-[12px] border border-clay/25 bg-peach/20 px-4 py-3">
+          <p className="text-sm leading-relaxed text-clay">
+            ⏳ <span className="font-medium">Please wait while your payment is verified manually.</span> Once
+            confirmed, Shagufta will email your meeting link to <span className="font-medium">{email}</span> shortly.
+          </p>
+        </div>
+
+        <p className="mt-5 text-xs text-muted">
+          Everything you shared is kept private and confidential.
         </p>
       </div>
     );
   }
 
-  // ---- Multi-step form (steps 0, 1, 2) ----
+  const stepIndex = { select: 0, about: 1, story: 2, safety: 3, done: 3 }[step];
+
   return (
     <div className="rounded-[18px] border border-hairline bg-canvas p-6 sm:p-9">
       {/* progress */}
       <div className="mb-7 flex items-center gap-2">
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex flex-1 items-center gap-2">
-            <span
-              className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-medium transition-colors ${
-                i <= step
-                  ? "bg-forest text-cream"
-                  : "bg-surface-strong text-muted"
-              }`}
-            >
+            <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-medium transition-colors ${
+              i <= stepIndex ? "bg-forest text-cream" : "bg-surface-strong text-muted"
+            }`}>
               {i + 1}
             </span>
-            {i < 2 && (
-              <span
-                className={`h-px flex-1 ${
-                  i < step ? "bg-forest/50" : "bg-hairline"
-                }`}
-              />
-            )}
+            {i < 3 && <span className={`h-px flex-1 ${i < stepIndex ? "bg-forest/50" : "bg-hairline"}`} />}
           </div>
         ))}
       </div>
 
-      {step === 0 && (
+      {/* STEP 1 — plan + time */}
+      {step === "select" && (
+        <div className="flex flex-col gap-6">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">Step 1 of 4</p>
+            <h3 className="mt-2 font-serif text-2xl text-ink">Choose your plan &amp; time</h3>
+            <p className="mt-1 text-sm text-body">Pick what suits you. Payment is confirmed after you submit.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {PLAN_LIST.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPlanId(p.id)}
+                aria-pressed={planId === p.id}
+                className={`flex flex-col rounded-[14px] border p-4 text-left transition-colors ${
+                  planId === p.id
+                    ? "border-accent bg-accent-soft/40 ring-2 ring-accent-soft"
+                    : "border-hairline bg-canvas hover:border-border-strong"
+                }`}
+              >
+                <span className="text-sm font-medium text-ink">{p.name}</span>
+                <span className="mt-1 font-serif text-2xl text-ink">₹{p.amount}</span>
+                <span className="text-xs text-muted">{p.calls}</span>
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-ink">Pick a time</p>
+            {slotsLoading ? (
+              <p className="mt-2 text-sm text-muted">Loading available times…</p>
+            ) : slots.length === 0 ? (
+              <div className="mt-2 rounded-[12px] border border-hairline bg-surface-soft/60 px-4 py-3">
+                <p className="text-sm text-body">
+                  No times are published right now. Continue and choose “I&apos;m flexible” —
+                  Shagufta will suggest a time by email.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 flex max-h-64 flex-col gap-4 overflow-y-auto pr-1">
+                {Object.entries(grouped).map(([day, daySlots]) => (
+                  <div key={day}>
+                    <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted">{day}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {daySlots.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => { setSlotId(s.id); setFlexible(false); }}
+                          aria-pressed={slotId === s.id}
+                          className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                            slotId === s.id
+                              ? "border-forest bg-forest text-cream"
+                              : "border-hairline bg-canvas text-body hover:border-border-strong"
+                          }`}
+                        >
+                          {fmtTime(s.starts_at)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm text-body">
+              <input
+                type="checkbox"
+                checked={flexible}
+                onChange={(e) => { setFlexible(e.target.checked); if (e.target.checked) setSlotId(""); }}
+                className="h-4 w-4 rounded border-border-strong accent-[var(--color-accent,#0e8074)]"
+              />
+              I&apos;m flexible — let Shagufta suggest a time
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2 — about you */}
+      {step === "about" && (
         <div className="flex flex-col gap-5">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">
-              Step 1 of 3
-            </p>
-            <h3 className="mt-2 font-serif text-2xl text-ink">
-              A little about you
-            </h3>
-            <p className="mt-1 text-sm text-body">
-              Just the basics. A first name or nickname is completely fine.
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">Step 2 of 4</p>
+            <h3 className="mt-2 font-serif text-2xl text-ink">A little about you</h3>
+            <p className="mt-1 text-sm text-body">Just the basics. A first name or nickname is completely fine.</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Name (or nickname)" required>
-              <input
-                className={inputCls}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="What should I call you?"
-              />
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="What should I call you?" />
             </Field>
             <Field label="Age" required>
-              <input
-                className={inputCls}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                inputMode="numeric"
-                placeholder="e.g. 22"
-              />
+              <input className={inputCls} value={age} onChange={(e) => setAge(e.target.value)} inputMode="numeric" placeholder="e.g. 22" />
             </Field>
           </div>
           <Field label="Gender" required>
             <div className="flex flex-wrap gap-2">
-              {GENDERS.map((g) => (
-                <Chip
-                  key={g}
-                  label={g}
-                  active={gender === g}
-                  onClick={() => setGender(g)}
-                />
-              ))}
+              {GENDERS.map((g) => <Chip key={g} label={g} active={gender === g} onClick={() => setGender(g)} />)}
             </div>
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Country / City" hint="Helps with time zones.">
-              <input
-                className={inputCls}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Mumbai, India"
-              />
+              <input className={inputCls} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Mumbai, India" />
             </Field>
             <Field label="Email" required>
-              <input
-                className={inputCls}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
+              <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             </Field>
           </div>
         </div>
       )}
 
-      {step === 1 && (
+      {/* STEP 3 — your story */}
+      {step === "story" && (
         <div className="flex flex-col gap-6">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">
-              Step 2 of 3
-            </p>
-            <h3 className="mt-2 font-serif text-2xl text-ink">
-              What&apos;s bringing you here
-            </h3>
-            <p className="mt-1 text-sm text-body">
-              There are no right answers. Share whatever feels comfortable.
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">Step 3 of 4</p>
+            <h3 className="mt-2 font-serif text-2xl text-ink">What&apos;s bringing you here</h3>
+            <p className="mt-1 text-sm text-body">There are no right answers. Share whatever feels comfortable.</p>
           </div>
-
-          <Field
-            label="What made you decide to book this session?"
-            hint="A sentence or two is plenty — or skip it."
-          >
-            <textarea
-              className={`${inputCls} resize-none`}
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="I've been feeling…"
-            />
+          <Field label="What made you decide to book this session?" hint="A sentence or two is plenty — or skip it.">
+            <textarea className={`${inputCls} resize-none`} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="I've been feeling…" />
           </Field>
-
           <div>
-            <p className="text-sm font-medium text-ink">
-              How are you feeling right now?
-              <span className="font-normal text-muted"> (choose any)</span>
-            </p>
+            <p className="text-sm font-medium text-ink">How are you feeling right now?<span className="font-normal text-muted"> (choose any)</span></p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {FEELINGS.map((f) => (
-                <Chip
-                  key={f}
-                  label={f}
-                  active={feelings.includes(f)}
-                  onClick={() => toggle(feelings, setFeelings, f)}
-                />
-              ))}
+              {FEELINGS.map((f) => <Chip key={f} label={f} active={feelings.includes(f)} onClick={() => toggle(feelings, setFeelings, f)} />)}
             </div>
           </div>
-
           <div>
-            <p className="text-sm font-medium text-ink">
-              What would you like to talk about?
-              <span className="font-normal text-muted"> (choose any)</span>
-            </p>
+            <p className="text-sm font-medium text-ink">What would you like to talk about?<span className="font-normal text-muted"> (choose any)</span></p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {TOPICS.map((t) => (
-                <Chip
-                  key={t}
-                  label={t}
-                  active={topics.includes(t)}
-                  onClick={() => toggle(topics, setTopics, t)}
-                />
-              ))}
+              {TOPICS.map((t) => <Chip key={t} label={t} active={topics.includes(t)} onClick={() => toggle(topics, setTopics, t)} />)}
             </div>
           </div>
-
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Have you talked to anyone about this before?">
-              <select
-                className={inputCls}
-                value={spokenBefore}
-                onChange={(e) => setSpokenBefore(e.target.value)}
-              >
+              <select className={inputCls} value={spokenBefore} onChange={(e) => setSpokenBefore(e.target.value)}>
                 <option value="">Choose one…</option>
-                {SPOKEN.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+                {SPOKEN.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
             <Field label="Preferred language for the session">
-              <select
-                className={inputCls}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
+              <select className={inputCls} value={language} onChange={(e) => setLanguage(e.target.value)}>
                 <option value="">Choose one…</option>
-                {LANGUAGES.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
+                {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
             </Field>
           </div>
-
           <Field label="What would feel like a good outcome from this session?">
-            <textarea
-              className={`${inputCls} resize-none`}
-              rows={2}
-              value={desiredOutcome}
-              onChange={(e) => setDesiredOutcome(e.target.value)}
-              placeholder="Even 'I'm not sure yet' is okay."
-            />
+            <textarea className={`${inputCls} resize-none`} rows={2} value={desiredOutcome} onChange={(e) => setDesiredOutcome(e.target.value)} placeholder="Even 'I'm not sure yet' is okay." />
           </Field>
-
           <Field label="Anything you'd like Shagufta to know beforehand?">
-            <textarea
-              className={`${inputCls} resize-none`}
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
-            />
+            <textarea className={`${inputCls} resize-none`} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
           </Field>
         </div>
       )}
 
-      {step === 2 && (
+      {/* STEP 4 — safety */}
+      {step === "safety" && (
         <div className="flex flex-col gap-5">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">
-              Step 3 of 3
-            </p>
-            <h3 className="mt-2 font-serif text-2xl text-ink">
-              One important question
-            </h3>
-            <p className="mt-1 text-sm text-body">
-              This helps make sure you get the right kind of support. Please
-              answer honestly.
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-deep">Step 4 of 4</p>
+            <h3 className="mt-2 font-serif text-2xl text-ink">One important question</h3>
+            <p className="mt-1 text-sm text-body">This helps make sure you get the right kind of support. Please answer honestly.</p>
           </div>
-
           <div className="rounded-[14px] border border-clay/30 bg-peach/15 p-5">
             <p className="text-[15px] font-medium text-ink">
-              Are you currently experiencing thoughts of self-harm or suicide?
-              <span className="text-accent-deep"> *</span>
+              Are you currently experiencing thoughts of self-harm or suicide?<span className="text-accent-deep"> *</span>
             </p>
             <div className="mt-4 flex gap-3">
               {(["no", "yes"] as const).map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setSafety(val)}
-                  aria-pressed={safety === val}
+                <button key={val} type="button" onClick={() => setSafety(val)} aria-pressed={safety === val}
                   className={`flex-1 rounded-[12px] border px-5 py-3 text-sm font-medium capitalize transition-colors ${
-                    safety === val
-                      ? "border-forest bg-forest text-cream"
-                      : "border-border-strong bg-canvas text-ink hover:bg-surface-soft"
-                  }`}
-                >
+                    safety === val ? "border-forest bg-forest text-cream" : "border-border-strong bg-canvas text-ink hover:bg-surface-soft"
+                  }`}>
                   {val === "no" ? "No" : "Yes"}
                 </button>
               ))}
             </div>
             {safety === "yes" && (
               <p className="mt-4 text-sm leading-relaxed text-clay">
-                Thank you for your honesty. Because of this, a listening session
-                isn&apos;t the safe or right support for you right now — you
-                deserve trained, professional help today. Press{" "}
-                <span className="font-medium">Continue</span> and we&apos;ll
-                show you people who can help immediately.
+                Thank you for your honesty. Because of this, a listening session isn&apos;t the safe
+                or right support for you right now — you deserve trained, professional help today.
+                Press <span className="font-medium">Continue</span> and we&apos;ll show you people who can help immediately.
               </p>
             )}
           </div>
-
-          <label className="flex items-start gap-3 text-sm text-body">
-            <span>
-              By continuing, you understand these sessions are{" "}
-              <span className="font-medium text-ink">
-                not therapy, counseling, diagnosis, or medical advice
-              </span>
-              , and are not a substitute for professional or emergency care.
-            </span>
-          </label>
+          <p className="text-sm text-body">
+            By continuing, you understand these sessions are{" "}
+            <span className="font-medium text-ink">not therapy, counseling, diagnosis, or medical advice</span>,
+            and are not a substitute for professional or emergency care.
+          </p>
         </div>
       )}
 
       {error && <p className="mt-5 text-sm text-clay">{error}</p>}
 
-      {/* nav buttons */}
+      {/* nav */}
       <div className="mt-8 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={back}
-          className="rounded-[14px] border border-border-strong bg-canvas px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
-        >
-          Back
-        </button>
-
-        {step < 2 ? (
-          <button
-            type="button"
-            onClick={next}
-            className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
-          >
-            Continue
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M5 12h14M13 6l6 6-6 6"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+        {step !== "select" ? (
+          <button type="button"
+            onClick={() => {
+              setError("");
+              setStep(step === "about" ? "select" : step === "story" ? "about" : "story");
+              scrollTop();
+            }}
+            className="rounded-[14px] border border-border-strong bg-canvas px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-surface-soft">
+            Back
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={submit}
-            disabled={status === "sending"}
-            className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
-          >
-            {status === "sending"
-              ? "Submitting…"
-              : safety === "yes"
-                ? "Continue"
-                : "Submit & choose a time"}
+        ) : <span className="text-xs text-muted">Takes about 2 minutes</span>}
+
+        {step === "select" && (
+          <button type="button" onClick={goFromSelect} className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active">
+            Continue <Arrow />
+          </button>
+        )}
+        {step === "about" && (
+          <button type="button" onClick={goFromAbout} className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active">
+            Continue <Arrow />
+          </button>
+        )}
+        {step === "story" && (
+          <button type="button" onClick={() => { setStep("safety"); scrollTop(); }} className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active">
+            Continue <Arrow />
+          </button>
+        )}
+        {step === "safety" && (
+          <button type="button" onClick={submit} disabled={status === "sending"}
+            className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60">
+            {status === "sending" ? "Submitting…" : safety === "yes" ? "Continue" : "Submit booking request"}
           </button>
         )}
       </div>
     </div>
+  );
+}
+
+function Arrow() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard?.writeText(value).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        });
+      }}
+      className="flex-none rounded-md border border-hairline bg-surface-soft px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-surface-strong"
+    >
+      {copied ? "Copied ✓" : "Copy"}
+    </button>
   );
 }
