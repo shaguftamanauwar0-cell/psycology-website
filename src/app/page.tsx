@@ -3,7 +3,7 @@ import SiteNav from "@/components/SiteNav";
 import Reveal from "@/components/Reveal";
 import ContactForm from "@/components/ContactForm";
 import IntakeBooking from "@/components/IntakeBooking";
-import { PLAN_LIST } from "@/lib/pricing";
+import { PLAN_LIST, priceLabel } from "@/lib/pricing";
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -69,7 +69,7 @@ export default function Home() {
               </div>
 
               <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
-                {["Confidential", "Non-judgmental", "From ₹49", "Online"].map(
+                {["Confidential", "Non-judgmental", "1st session free", "Online"].map(
                   (t) => (
                     <span key={t} className="inline-flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -110,7 +110,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-hairline px-5 sm:px-8 md:grid-cols-4">
             {[
               { k: "100%", v: "Confidential" },
-              { k: "₹49", v: "From, per session" },
+              { k: "Free", v: "First session" },
               { k: "1-to-1", v: "Private sessions" },
               { k: "No", v: "Judgment, ever" },
             ].map((s, i) => (
@@ -211,7 +211,7 @@ export default function Home() {
                 {
                   n: "02",
                   t: "Confirm & connect",
-                  d: "Complete the small payment. Once it's received, Shagufta emails you a private meeting link for your session.",
+                  d: "Your first session is free. For paid plans, a quick UPI payment — then Shagufta emails you a private meeting link.",
                 },
                 {
                   n: "03",
@@ -386,11 +386,12 @@ export default function Home() {
               <Eyebrow>Simple, honest pricing</Eyebrow>
             </div>
             <h2 className="mt-6 font-serif text-[2rem] leading-tight text-ink sm:text-[2.5rem]">
-              Gentle support, kept affordable.
+              Your first session is free.
             </h2>
             <p className="mt-4 text-body">
-              A small fee keeps these sessions sustainable so Shagufta can keep offering
-              them with full attention and care. Pay easily by UPI after you book.
+              Try a listening &amp; reflection call with no payment at all. If it helps and
+              you&apos;d like to continue, a small fee keeps these sessions sustainable —
+              paid easily by UPI after you book.
             </p>
           </Reveal>
 
@@ -404,14 +405,22 @@ export default function Home() {
                       : "border-hairline bg-canvas"
                   }`}
                 >
-                  {p.highlight && (
-                    <span className="mb-3 inline-flex w-fit rounded-full bg-accent px-3 py-1 text-xs font-medium text-on-primary">
-                      Most popular
+                  {p.badge && (
+                    <span
+                      className={`mb-3 inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium ${
+                        p.amount === 0
+                          ? "bg-forest text-cream"
+                          : "bg-accent text-on-primary"
+                      }`}
+                    >
+                      {p.badge}
                     </span>
                   )}
                   <h3 className="text-lg font-medium text-ink">{p.name}</h3>
                   <div className="mt-3 flex items-baseline gap-1.5">
-                    <span className="font-serif text-4xl text-ink">₹{p.amount}</span>
+                    <span className="font-serif text-4xl text-ink">
+                      {priceLabel(p.amount)}
+                    </span>
                     <span className="text-sm text-muted">{p.unit}</span>
                   </div>
                   <p className="mt-1 text-sm font-medium text-accent-deep">{p.calls}</p>
@@ -434,9 +443,9 @@ export default function Home() {
           </div>
           <Reveal>
             <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-muted">
-              Payment is verified manually — after you submit the form you&apos;ll get UPI
-              details, and once your payment is confirmed Shagufta emails your private
-              meeting link.
+              The first session is free — just book and Shagufta emails your meeting link.
+              For paid plans, you&apos;ll get UPI details after the form, and your link is
+              emailed once payment is confirmed.
             </p>
           </Reveal>
         </section>
@@ -459,12 +468,12 @@ export default function Home() {
                   </h2>
                   <p className="mt-4 text-[1.02rem] leading-relaxed text-sage">
                     Choose a plan and a time, then fill a short, private form —
-                    it helps Shagufta understand how best to support you. After
-                    you submit, you&apos;ll get UPI payment details, and your
-                    meeting link is emailed once payment is confirmed.
+                    it helps Shagufta understand how best to support you. Your
+                    first session is free; for paid plans you&apos;ll get UPI
+                    details, and your meeting link is emailed once confirmed.
                   </p>
                   <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-sage/90">
-                    {["From ₹49", "Private & confidential", "About 2 minutes"].map(
+                    {["1st session free", "Private & confidential", "About 2 minutes"].map(
                       (t) => (
                         <li key={t} className="inline-flex items-center gap-2">
                           <span className="h-1.5 w-1.5 rounded-full bg-sage" />

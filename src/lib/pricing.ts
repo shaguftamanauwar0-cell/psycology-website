@@ -3,21 +3,25 @@ export type PlanId = "single" | "three" | "monthly";
 export type Plan = {
   id: PlanId;
   name: string;
-  amount: number; // rupees
+  amount: number; // rupees (0 = free)
   unit: string; // short label under the price
   calls: string; // what you get
   blurb: string;
+  badge?: string; // optional ribbon label
   highlight?: boolean;
 };
 
 export const PLANS: Record<PlanId, Plan> = {
   single: {
     id: "single",
-    name: "Single session",
-    amount: 49,
-    unit: "one call",
-    calls: "1 session",
-    blurb: "A single 30-minute listening & reflection call. Perfect to try it out.",
+    name: "First session",
+    amount: 0,
+    unit: "free",
+    calls: "1 session · free",
+    blurb:
+      "Your very first listening & reflection call is completely free. Just book a time and talk — no payment needed.",
+    badge: "Start free",
+    highlight: true,
   },
   three: {
     id: "three",
@@ -25,8 +29,9 @@ export const PLANS: Record<PlanId, Plan> = {
     amount: 100,
     unit: "3 calls",
     calls: "3 sessions",
-    blurb: "Three calls to use whenever you need them. Better value if you'd like to continue.",
-    highlight: true,
+    blurb:
+      "Loved your first call? Continue with three sessions to use whenever you need them.",
+    badge: "Most popular",
   },
   monthly: {
     id: "monthly",
@@ -34,7 +39,8 @@ export const PLANS: Record<PlanId, Plan> = {
     amount: 300,
     unit: "per month",
     calls: "up to 2 calls / week",
-    blurb: "A full month of support — up to two calls every week, whenever things feel heavy.",
+    blurb:
+      "A full month of support — up to two calls every week, whenever things feel heavy.",
   },
 };
 
@@ -43,4 +49,9 @@ export const PLAN_LIST: Plan[] = [PLANS.single, PLANS.three, PLANS.monthly];
 export function getPlan(id: string | undefined | null): Plan | null {
   if (id && id in PLANS) return PLANS[id as PlanId];
   return null;
+}
+
+/** Price shown to users: "Free" when amount is 0, else "₹49". */
+export function priceLabel(amount: number): string {
+  return amount === 0 ? "Free" : `₹${amount}`;
 }

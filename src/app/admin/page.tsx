@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getPlan } from "@/lib/pricing";
+import { getPlan, priceLabel } from "@/lib/pricing";
 
 type SlotRef = { starts_at: string; duration_min: number };
 type Booking = {
@@ -221,7 +221,7 @@ function BookingCard({ b, onChanged }: { b: Booking; onChanged: () => void }) {
             </span>
           </div>
           <p className="mt-1 text-sm text-body">
-            {plan?.name} · ₹{b.amount} · {slot ? fmt(slot.starts_at) : "Flexible time"}
+            {plan?.name} · {priceLabel(b.amount)} · {slot ? fmt(slot.starts_at) : "Flexible time"}
           </p>
           <a href={`mailto:${b.email}`} className="text-sm text-accent-deep hover:underline">{b.email}</a>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PLAN_LIST, PLANS, type PlanId } from "@/lib/pricing";
+import { PLAN_LIST, PLANS, priceLabel, type PlanId } from "@/lib/pricing";
 
 const FEELINGS = [
   "Calm", "Confused", "Overwhelmed", "Anxious", "Sad",
@@ -135,6 +135,7 @@ export default function IntakeBooking() {
 
   const selectedPlan = planId ? PLANS[planId] : null;
   const selectedSlot = slots.find((s) => s.id === slotId) || null;
+  const isFree = selectedPlan?.amount === 0;
 
   // group slots by day for the picker
   const grouped = slots.reduce<Record<string, Slot[]>>((acc, s) => {
@@ -234,49 +235,62 @@ export default function IntakeBooking() {
           </svg>
         </div>
         <h3 className="font-serif text-2xl text-ink">
-          Thank you, {name.split(" ")[0] || "there"} — almost there.
+          Thank you, {name.split(" ")[0] || "there"} — {isFree ? "you're all set." : "almost there."}
         </h3>
         <p className="mt-2 text-[15px] leading-relaxed text-body">
           Your request has been received{selectedSlot ? ` for ${fmtDay(selectedSlot.starts_at)} at ${fmtTime(selectedSlot.starts_at)}` : ""}.
-          To confirm your {selectedPlan?.name.toLowerCase()} booking, please complete the payment below.
+          {isFree
+            ? " Your first session is completely free — there's nothing to pay."
+            : ` To confirm your ${selectedPlan?.name.toLowerCase()} booking, please complete the payment below.`}
         </p>
 
-        <div className="mt-6 rounded-[14px] border border-hairline bg-surface-soft/60 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">Amount to pay</span>
-            <span className="font-serif text-2xl text-ink">₹{selectedPlan?.amount}</span>
-          </div>
+        {!isFree && (
+          <div className="mt-6 rounded-[14px] border border-hairline bg-surface-soft/60 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted">Amount to pay</span>
+              <span className="font-serif text-2xl text-ink">₹{selectedPlan?.amount}</span>
+            </div>
 
-          <div className="mt-4 flex flex-col items-center border-t border-hairline pt-5">
-            <p className="text-sm text-body">Scan to pay with any UPI app (PhonePe, GPay, Paytm)</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/upi-qr.jpg"
-              alt="UPI payment QR code"
-              width={220}
-              height={220}
-              className="mt-3 h-56 w-56 rounded-[12px] border border-hairline bg-canvas object-contain p-2"
-            />
-            {UPI_ID && (
-              <div className="mt-3 flex items-center gap-3 rounded-md border border-hairline bg-canvas px-4 py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-ink">{UPI_ID}</p>
-                  <p className="text-xs text-muted">{UPI_NAME}</p>
+            <div className="mt-4 flex flex-col items-center border-t border-hairline pt-5">
+              <p className="text-sm text-body">Scan to pay with any UPI app (PhonePe, GPay, Paytm)</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/upi-qr.jpg"
+                alt="UPI payment QR code"
+                width={220}
+                height={220}
+                className="mt-3 h-56 w-56 rounded-[12px] border border-hairline bg-canvas object-contain p-2"
+              />
+              {UPI_ID && (
+                <div className="mt-3 flex items-center gap-3 rounded-md border border-hairline bg-canvas px-4 py-2.5">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{UPI_ID}</p>
+                    <p className="text-xs text-muted">{UPI_NAME}</p>
+                  </div>
+                  <CopyButton value={UPI_ID} />
                 </div>
-                <CopyButton value={UPI_ID} />
-              </div>
-            )}
-            <p className="mt-3 text-center text-xs text-muted">
-              Please add your name <span className="font-medium text-ink">({name.split(" ")[0] || "your name"})</span> in
-              the payment note so Shagufta can match it to your booking.
-            </p>
+              )}
+              <p className="mt-3 text-center text-xs text-muted">
+                Please add your name <span className="font-medium text-ink">({name.split(" ")[0] || "your name"})</span> in
+                the payment note so Shagufta can match it to your booking.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-5 rounded-[12px] border border-clay/25 bg-peach/20 px-4 py-3">
           <p className="text-sm leading-relaxed text-clay">
-            ⏳ <span className="font-medium">Please wait while your payment is verified manually.</span> Once
-            confirmed, Shagufta will email your meeting link to <span className="font-medium">{email}</span> shortly.
+            {isFree ? (
+              <>
+                🌱 <span className="font-medium">Shagufta will email your meeting link</span> to{" "}
+                <span className="font-medium">{email}</span> shortly. Nothing else to do — just watch your inbox.
+              </>
+            ) : (
+              <>
+                ⏳ <span className="font-medium">Please wait while your payment is verified manually.</span> Once
+                confirmed, Shagufta will email your meeting link to <span className="font-medium">{email}</span> shortly.
+              </>
+            )}
           </p>
         </div>
 
@@ -328,7 +342,7 @@ export default function IntakeBooking() {
                 }`}
               >
                 <span className="text-sm font-medium text-ink">{p.name}</span>
-                <span className="mt-1 font-serif text-2xl text-ink">₹{p.amount}</span>
+                <span className="mt-1 font-serif text-2xl text-ink">{priceLabel(p.amount)}</span>
                 <span className="text-xs text-muted">{p.calls}</span>
               </button>
             ))}

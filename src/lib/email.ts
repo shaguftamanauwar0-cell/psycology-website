@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { getPlan } from "./pricing";
+import { getPlan, priceLabel } from "./pricing";
 
 /** Whether Gmail SMTP is configured. */
 export function emailConfigured(): boolean {
@@ -73,12 +73,13 @@ export async function sendAdminBookingEmail(b: BookingEmailData): Promise<void> 
     return;
   }
   const plan = getPlan(b.plan);
-  const planLabel = plan ? `${plan.name} — ₹${b.amount}` : `₹${b.amount}`;
+  const planLabel = plan ? `${plan.name} — ${priceLabel(b.amount)}` : priceLabel(b.amount);
+  const isFree = b.amount === 0;
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#fffdf9;font-family:system-ui,sans-serif">
     <div style="max-width:580px;margin:32px auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
       <div style="background:#14342a;padding:24px 28px">
-        <p style="margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#aecbb9">New booking · awaiting payment</p>
+        <p style="margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#aecbb9">New booking · ${isFree ? "free first session" : "awaiting payment"}</p>
         <h1 style="margin:6px 0 0;font-size:22px;color:#f3ead7;font-weight:600">${b.name} requested a session</h1>
         <p style="margin:8px 0 0;font-size:14px;color:#aecbb9">${planLabel} · ${fmtSlot(b.slotStartsAt)}</p>
       </div>
@@ -99,8 +100,8 @@ export async function sendAdminBookingEmail(b: BookingEmailData): Promise<void> 
           ${row("Desired outcome", b.desiredOutcome)}
           ${row("Notes", b.notes)}
         </table>
-        <div style="margin-top:20px;padding:14px 16px;background:#fff4e6;border-radius:10px;border:1px solid #e6c78f">
-          <p style="margin:0;font-size:13px;color:#7a5a1e">⏳ Waiting for you to confirm payment, then send the meeting link from the admin panel.</p>
+        <div style="margin-top:20px;padding:14px 16px;background:${isFree ? "#f0faf7" : "#fff4e6"};border-radius:10px;border:1px solid ${isFree ? "#aecbb9" : "#e6c78f"}">
+          <p style="margin:0;font-size:13px;color:${isFree ? "#14342a" : "#7a5a1e"}">${isFree ? "🌱 This is a free first session — just send the meeting link from the admin panel." : "⏳ Waiting for you to confirm payment, then send the meeting link from the admin panel."}</p>
         </div>
         <p style="margin:18px 0 0;font-size:13px;color:#6b7280">Open your <b>/admin</b> panel to confirm payment and send ${b.name} the meeting link.</p>
       </div>
