@@ -93,6 +93,7 @@ export default function IntakeBooking() {
   const [step, setStep] = useState<Step>("select");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
   const [showCrisis, setShowCrisis] = useState(false);
 
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -153,13 +154,41 @@ export default function IntakeBooking() {
     scrollTop();
   }
 
-  function goFromAbout() {
+  async function goFromAbout() {
     setError("");
     if (!name.trim()) return setError("Please tell us your name or a nickname.");
     if (!age.trim() || !Number.isFinite(Number(age))) return setError("Please enter your age.");
     if (!gender) return setError("Please choose an option for gender.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
       return setError("Please enter a valid email address.");
+
+    // Free first session is one-per-email — check now, before they fill more,
+    // and send them back to pick a paid plan if it's already been used.
+    if (isFree) {
+      setChecking(true);
+      try {
+        const res = await fetch("/api/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (d.freeUsed) {
+          setChecking(false);
+          setError(
+            "This email has already used its free first session. Please choose a paid plan below — Single is just ₹49.",
+          );
+          setPlanId("");
+          setStep("select");
+          scrollTop();
+          return;
+        }
+      } catch {
+        // If the check fails, let them proceed; the server still enforces it.
+      }
+      setChecking(false);
+    }
+
     setStep("story");
     scrollTop();
   }
@@ -327,6 +356,12 @@ export default function IntakeBooking() {
             <h3 className="mt-2 font-serif text-2xl text-ink">Choose your plan &amp; time</h3>
             <p className="mt-1 text-sm text-body">Pick what suits you. Payment is confirmed after you submit.</p>
           </div>
+
+          {error && (
+            <div className="rounded-[12px] border border-clay/30 bg-peach/25 px-4 py-3 text-sm leading-relaxed text-clay">
+              {error}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {PLAN_LIST.map((p) => (
@@ -515,7 +550,7 @@ export default function IntakeBooking() {
         </div>
       )}
 
-      {error && <p className="mt-5 text-sm text-clay">{error}</p>}
+      {error && step !== "select" && <p className="mt-5 text-sm text-clay">{error}</p>}
 
       {/* nav */}
       <div className="mt-8 flex items-center justify-between gap-3">
@@ -537,8 +572,8 @@ export default function IntakeBooking() {
           </button>
         )}
         {step === "about" && (
-          <button type="button" onClick={goFromAbout} className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active">
-            Continue <Arrow />
+          <button type="button" onClick={goFromAbout} disabled={checking} className="inline-flex items-center gap-2 rounded-[14px] bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60">
+            {checking ? "Checking…" : <>Continue <Arrow /></>}
           </button>
         )}
         {step === "story" && (
