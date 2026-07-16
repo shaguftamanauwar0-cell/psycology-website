@@ -389,13 +389,12 @@ export default function Home() {
               Your first session is free.
             </h2>
             <p className="mt-4 text-body">
-              Try a listening &amp; reflection call with no payment at all. If it helps and
-              you&apos;d like to continue, a small fee keeps these sessions sustainable —
-              paid easily by UPI after you book.
+              Your very first call is completely free — one per person. After that, sessions
+              are just ₹49 each, or save with a bundle. Paid easily by UPI after you book.
             </p>
           </Reveal>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {PLAN_LIST.map((p, i) => (
               <Reveal as="article" key={p.id} delay={i * 100}>
                 <div

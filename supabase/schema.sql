@@ -39,6 +39,11 @@ create table if not exists bookings (
 );
 create index if not exists bookings_created_at_idx on bookings (created_at desc);
 
+-- Enforce "free first session, once per email" at the database level:
+-- only one free (amount = 0) booking may exist per email address.
+create unique index if not exists bookings_one_free_per_email
+  on bookings (lower(email)) where amount = 0;
+
 -- Private "just say hello" contact messages.
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),

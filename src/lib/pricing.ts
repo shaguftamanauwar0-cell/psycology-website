@@ -1,4 +1,4 @@
-export type PlanId = "single" | "three" | "monthly";
+export type PlanId = "first" | "single" | "three" | "monthly";
 
 export type Plan = {
   id: PlanId;
@@ -12,16 +12,25 @@ export type Plan = {
 };
 
 export const PLANS: Record<PlanId, Plan> = {
-  single: {
-    id: "single",
+  first: {
+    id: "first",
     name: "First session",
     amount: 0,
     unit: "free",
     calls: "1 session · free",
     blurb:
-      "Your very first listening & reflection call is completely free. Just book a time and talk — no payment needed.",
-    badge: "Start free",
+      "Your very first listening & reflection call is completely free — one per person, no payment needed.",
+    badge: "Free · first time",
     highlight: true,
+  },
+  single: {
+    id: "single",
+    name: "Single session",
+    amount: 49,
+    unit: "per call",
+    calls: "1 session",
+    blurb:
+      "After your free first call, continue with a one-off session whenever you need it.",
   },
   three: {
     id: "three",
@@ -29,9 +38,8 @@ export const PLANS: Record<PlanId, Plan> = {
     amount: 100,
     unit: "3 calls",
     calls: "3 sessions",
-    blurb:
-      "Loved your first call? Continue with three sessions to use whenever you need them.",
-    badge: "Most popular",
+    blurb: "Save with three sessions to use whenever you like.",
+    badge: "Best value",
   },
   monthly: {
     id: "monthly",
@@ -44,7 +52,12 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
-export const PLAN_LIST: Plan[] = [PLANS.single, PLANS.three, PLANS.monthly];
+export const PLAN_LIST: Plan[] = [
+  PLANS.first,
+  PLANS.single,
+  PLANS.three,
+  PLANS.monthly,
+];
 
 export function getPlan(id: string | undefined | null): Plan | null {
   if (id && id in PLANS) return PLANS[id as PlanId];

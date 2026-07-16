@@ -71,6 +71,21 @@ export async function POST(request: Request) {
   const slotId = body.slotId?.toString() || null;
 
   try {
+    // Free first session is one-per-person: reject if this email booked before.
+    if (plan.amount === 0) {
+      const prior = await sql`
+        select 1 from bookings where lower(email) = lower(${email}) limit 1`;
+      if (prior.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "The free first session is only for your very first visit — it looks like you've booked with this email before. Please choose a paid plan to continue.",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     // Claim the slot atomically: only succeeds if still 'available'.
     let slotStartsAt: Date | null = null;
     if (slotId) {
@@ -112,6 +127,16 @@ export async function POST(request: Request) {
       // Release the slot we just held so it isn't stuck.
       if (slotId) {
         await sql`update slots set status = 'available' where id = ${slotId}`;
+      }
+      // Unique-violation on the "one free session per email" index.
+      if ((insertErr as { code?: string })?.code === "23505") {
+        return NextResponse.json(
+          {
+            error:
+              "The free first session is only for your very first visit — please choose a paid plan to continue.",
+          },
+          { status: 409 },
+        );
       }
       throw insertErr;
     }

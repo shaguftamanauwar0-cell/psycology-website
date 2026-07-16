@@ -328,7 +328,7 @@ export default function IntakeBooking() {
             <p className="mt-1 text-sm text-body">Pick what suits you. Payment is confirmed after you submit.</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {PLAN_LIST.map((p) => (
               <button
                 key={p.id}
