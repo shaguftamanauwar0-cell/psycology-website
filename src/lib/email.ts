@@ -149,6 +149,7 @@ export async function sendMeetingLinkEmail(opts: {
   await transporter().sendMail({
     from: `"Shagufta Manauwar" <${process.env.GMAIL_USER}>`,
     to: opts.to,
+    cc: adminRecipients(),
     subject: "Your session is confirmed — here's your meeting link",
     html,
   });
